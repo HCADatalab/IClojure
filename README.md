@@ -1,6 +1,6 @@
 ![IClojure](https://i.imgur.com/PkyAoD7.png)
 # A Jupyter kernel for Clojure based on the Unrepl protocol.
-
+  - Inspired by (and bootstrapped from) the Clojupyter project.
   - Evaluate Clojure code on either a local or remote socket repl (port-forwarding)
   - Ship dependencies to remote repl only when needed
   - Avoids printing large results with configurable data structure elision
