@@ -21,6 +21,27 @@ $ git clone https://github.com/HCADatalab/IClojure
 $ cd IClojure
 $ make; make install; cd -
 ```
+### Usage
+Connect to a Local JVM
+```Connect to Local JVM
+\connect -
+```
+
+Connect to a Remote Socket REPL
+```Connect to a Remote Socket REPL
+\connect localhost:port
+```
+
+Add clojure dependencies to classpath
+```
+\cp some-deps.edn-map
+```
+```
+\cp '(form that evaluates to a deps.edn map)
+```
+
+### Experimental
+Currently working on IClojure JupyterLab Extension for mouse-driven lazy-loading.  Code is included in this repo, but documentation is still forth coming.
 
 ### License
 
