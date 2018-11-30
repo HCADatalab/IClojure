@@ -1,0 +1,46 @@
+{
+  "private": true,
+  "name": "iclojure_extension",
+  "version": "0.0.2",
+  "description": "A JupyterLab extension.",
+  "author": "Christophe Grand",
+  "main": "lib/plugin.js",
+  "keywords": [
+    "jupyter",
+    "jupyterlab",
+    "jupyterlab-extension"
+  ],
+  "scripts": {},
+  "babel": {
+    "presets": [
+      "latest"
+    ],
+    "plugins": [
+      "transform-class-properties"
+    ]
+  },
+  "jupyterlab": {
+    "extension": true
+  },
+  "dependencies": {
+    "@jupyterlab/coreutils": "^2.2.1",
+    "@jupyterlab/rendermime": "^0.17.3",
+    "@phosphor/widgets": "^1.6.0"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-core": "^6.18.2",
+    "babel-loader": "^6.4.0",
+    "babel-plugin-transform-class-properties": "^6.19.0",
+    "babel-preset-latest": "^6.16.0",
+    "css-loader": "^0.25.0",
+    "file-loader": "^0.9.0",
+    "json-loader": "^0.5.4",
+    "mkdirp": "^0.5.1",
+    "npm-run-all": "^4.1.1",
+    "rimraf": "^2.6.2",
+    "style-loader": "^0.13.1",
+    "url-loader": "^0.5.7",
+    "webpack": "^2.2.0"
+  }
+}
