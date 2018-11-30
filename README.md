@@ -40,6 +40,18 @@ Add clojure dependencies to classpath
 \cp '(form that evaluates to a deps.edn map)
 ```
 
+Render MIME
+```
+#unrepl/mime {:content-type "text/html" :content "<h1>Hello <i>#unrepl</i></h1>"}
+```
+```
+#unrepl/mime {:content-type "text/markdown" :content "# Hello *unrepl* in Markdown"}
+```
+```
+#unrepl/mime {:content-type "text/latex" :content "$$E=mc^2$$"}
+```
+
+
 ### Experimental
 Currently working on IClojure JupyterLab Extension for mouse-driven lazy-loading.  Code is included in this repo, but documentation is still forth coming.
 
