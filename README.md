@@ -22,22 +22,24 @@ $ cd IClojure
 $ make; make install; cd -
 ```
 ### Usage
-Connect to a Local JVM
-```Connect to Local JVM
-\connect -
+By default when you open a new notebook you are connected to the JVM running the kernel.
+
+To connect to a Remote Socket REPL, use:
+```Connect to a Remote Socket REPL
+/connect localhost:port
 ```
 
-Connect to a Remote Socket REPL
-```Connect to a Remote Socket REPL
-\connect localhost:port
+To reconnect to the local JVM:
+```Connect to Local JVM
+/connect -
 ```
 
 Add clojure dependencies to classpath
 ```
-\cp some-deps.edn-map
+/cp some-deps.edn-map
 ```
 ```
-\cp '(form that evaluates to a deps.edn map)
+/cp (form that evaluates to a deps.edn map)
 ```
 
 Render MIME
