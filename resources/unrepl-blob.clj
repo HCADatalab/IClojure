@@ -1,7 +1,7 @@
 (clojure.core/let [nop (clojure.core/constantly nil)
 done (promise)
 e (clojure.core/atom eval)]
-(-> (create-ns 'unrepl.repl$gOQFDUuzHjLIF1eKBU9gtZ8I4Xk)
+(-> (create-ns 'unrepl.repl$Y6nrTzLlYmPevknN6DsNBMKatzU)
 (intern '-init-done)
 (alter-var-root
 (fn [v]
@@ -28,7 +28,7 @@ done))))
 *string-length* Long/MAX_VALUE]
 (write x)))
 (declare ^:once ^:dynamic read ^:once ^:dynamic print ^:once ^:dynamic eval)(ns
-unrepl.printer$Z4aBFi34iyy94VC1WUZQs1VjhAE
+unrepl.printer$Ir$BfVfWFxWxDIho7ubR4ioO45Y
 (:require
 [clojure.string :as str]
 [clojure.edn :as edn]
@@ -38,25 +38,65 @@ unrepl.printer$Z4aBFi34iyy94VC1WUZQs1VjhAE
 (def defaults {#'*print-length* 10
 #'*print-level* 8
 #'unrepl/*string-length* 72})
+(defn- bump [n m]
+(if (< n (- Long/MAX_VALUE m))
+(+ n m)
+Long/MAX_VALUE))
 (defn ensure-defaults [bindings]
 (let [bindings (merge-with #(or %1 %2) bindings defaults)]
 (assoc bindings #'*print-budget*
 (long (min (* 1N (bindings #'*print-level*) (bindings #'*print-length*)) Long/MAX_VALUE)))))
 (defprotocol MachinePrintable
 (-print-on [x write rem-depth]))
-(defn print-on [write x rem-depth]
+(defn- really-satisfies? [protocol x]
+(when (class x)
+(let [default (get (:impls protocol) Object)
+impl (find-protocol-impl protocol x)]
+(not (identical? impl default)))))
+(def ^:private datafiable?
+(if-some [Datafiable (some-> 'clojure.core.protocols/Datafiable resolve deref)]
+#(or (get (meta %) 'clojure.core.protocols/datafy) (really-satisfies? Datafiable %))
+(constantly false)))
+(def ^:private datafy
+(or (some-> 'clojure.core.protocols/datafy resolve deref)
+(clojure.lang.Var$Unbound. #'datafy)))
+(def ^:private navigable?
+(if-some [Navigable (some-> 'clojure.core.protocols/Navigable resolve deref)]
+#(or (get (meta %) 'clojure.core.protocols/nav) (really-satisfies? Navigable %))
+(constantly false)))
+(def ^:private nav
+(or (some-> 'clojure.core.protocols/nav resolve deref)
+(clojure.lang.Var$Unbound. #'nav)))
+(when (bound? #'datafy)
+(require 'clojure.datafy))
+(defn- browsify
+"only for datafiables"
+[x]
+(let [d (datafy x)]
+(if (and (navigable? x) (or (map? d) (vector? d)))
+(reduce-kv (fn [d k v] (assoc d k (tagged-literal 'unrepl/browsable [v #(nav x k v)]))) d d)
+d)))
+(defn print-on
+[write x rem-depth]
 (let [rem-depth (dec rem-depth)
 budget (set! *print-budget* (dec *print-budget*))]
 (if (and (or (neg? rem-depth) (neg? budget)) (pos? (or *print-length* 1)))
 (binding [*print-length* 0]
 (print-on write x 0))
 (do
+(when (datafiable? x)
+(write "#unrepl/browsable ["))
 (when (and *print-meta* (meta x))
 (write "#unrepl/meta [")
 (-print-on (meta x) write rem-depth)
 (write " "))
 (-print-on x write rem-depth)
 (when (and *print-meta* (meta x))
+(write "]"))
+(when (datafiable? x)
+(write " ")
+(set! *print-budget* (bump *print-budget* 1))
+(print-on write (tagged-literal 'unrepl/... (*elide* (lazy-seq [(list (browsify x))]))) (inc rem-depth))
 (write "]"))))))
 (defn base64-encode [^java.io.InputStream in]
 (let [table "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
@@ -279,6 +319,13 @@ unrepl/... (binding
 unrepl/*string-length* Long/MAX_VALUE]
 (write (str "#" (:tag x) " "))
 (print-on write (:form x) Long/MAX_VALUE))
+unrepl/browsable (let [[x thunk] (:form x)
+rem-depth (inc rem-depth)]
+(set! *print-budget* (bump *print-budget* 2))
+(write (str "#" (:tag x) " ["))
+(print-on write (:form x) rem-depth)
+(write " ")
+(print-on write (tagged-literal 'unrepl/... (*elide* (lazy-seq [(thunk)]))) rem-depth))
 (print-tag-lit-on write (:tag x) (:form x) rem-depth)))
 clojure.lang.Ratio
 (-print-on [x write rem-depth]
@@ -361,11 +408,11 @@ bindings (select-keys (get-thread-bindings) [#'*print-length* #'*print-level* #'
 unrepl/*string-length* Integer/MAX_VALUE]
 (edn-str x)))
 (ns
-unrepl.repl$gOQFDUuzHjLIF1eKBU9gtZ8I4Xk
+unrepl.repl$Y6nrTzLlYmPevknN6DsNBMKatzU
 (:require
 [clojure.main :as m]
 [unrepl.core :as unrepl]
-[unrepl.printer$Z4aBFi34iyy94VC1WUZQs1VjhAE :as p]
+[unrepl.printer$Ir$BfVfWFxWxDIho7ubR4ioO45Y :as p]
 [clojure.edn :as edn]
 [clojure.java.io :as io]))
 (defn classloader
@@ -525,12 +572,12 @@ ref (java.lang.ref.SoftReference. x refq)]
 (defonce ^:private elision-store (soft-store #(list `fetch %)))
 (defn fetch [id]
 (if-some [[session-id x] ((:get elision-store) id)]
-(unrepl.printer$Z4aBFi34iyy94VC1WUZQs1VjhAE.WithBindings.
+(unrepl.printer$Ir$BfVfWFxWxDIho7ubR4ioO45Y.WithBindings.
 (select-keys (some-> session-id session :bindings) [#'*print-length* #'*print-level* #'unrepl/*string-length* #'p/*elide*])
 (cond
-(instance? unrepl.printer$Z4aBFi34iyy94VC1WUZQs1VjhAE.ElidedKVs x) x
+(instance? unrepl.printer$Ir$BfVfWFxWxDIho7ubR4ioO45Y.ElidedKVs x) x
 (string? x) x
-(instance? unrepl.printer$Z4aBFi34iyy94VC1WUZQs1VjhAE.MimeContent x) x
+(instance? unrepl.printer$Ir$BfVfWFxWxDIho7ubR4ioO45Y.MimeContent x) x
 :else (seq x)))
 p/unreachable))
 (defn interrupt! [session-id eval]
@@ -776,5 +823,5 @@ interrupted? #(.peek actions-queue)]
 ~expr))
 <<<FIN
 (clojure.core/ns user)
-(unrepl.repl$gOQFDUuzHjLIF1eKBU9gtZ8I4Xk/start (clojure.edn/read {:default tagged-literal} *in*))
+(unrepl.repl$Y6nrTzLlYmPevknN6DsNBMKatzU/start (clojure.edn/read {:default tagged-literal} *in*))
 {:complete (unrepl.actions.complete$rH_N_7nQsmkfOrRjLdk$fEUUS6o/complete #unrepl/param :unrepl.complete/before #unrepl/param :unrepl.complete/after #unrepl/param :unrepl.complete/ns)}

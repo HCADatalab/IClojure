@@ -6,7 +6,7 @@
                  [cheshire "5.7.0"]
                  [clj-time "0.11.0"]
                  [com.taoensso/timbre "4.8.0"]
-                 [org.clojure/clojure "1.9.0"]
+                 [org.clojure/clojure "1.10.0"]
                  [org.clojure/core.async "0.4.474"]
                  [org.clojure/data.codec "0.1.0"]
                  [org.zeromq/cljzmq "0.1.4" :exclusions [org.zeromq/jzmq]]
