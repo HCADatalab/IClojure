@@ -93,43 +93,45 @@
   (and (tagged-literal? x) (= 'unrepl/... (:tag x))))
 
 (defn elision-expand-1 [aux x]
-  (cond
-    (elision? x)
-    (if-some [form (-> x :form :get)]
-      (let [[tag payload] (a/<!! (aux-eval aux form))]
-        (case tag
-          :eval (recur aux payload)
-          :exception (throw (ex-info "Error while resolving elision." {:ex payload}))))
-      (throw (ex-info "Unresolvable elision" {})))
+  (loop [aux aux x x]
+    (cond
+      (elision? x)
+      (if-some [form (-> x :form :get)]
+        (let [[tag payload] (a/<!! (aux-eval aux form))]
+          (case tag
+            :eval (recur aux payload)
+            :exception (throw (ex-info "Error while resolving elision." {:ex payload}))))
+        (throw (ex-info "Unresolvable elision" {})))
+      
+      (map? x)
+      (if-some [e (get x (tagged-literal 'unrepl/... nil))]
+        (-> x (dissoc (tagged-literal 'unrepl/... nil))
+          (into (elision-expand-1 aux e)))
+        x)
+      
+      (vector? x)
+      (if-let [last (when-some [last (peek x)]
+                     (and (elision? last) last))]
+       (recur aux (into (pop x) (elision-expand-1 aux last)))
+       x)
     
-    (map? x)
-    (if-some [e (get x (tagged-literal 'unrepl/... nil))]
-      (-> x (dissoc (tagged-literal 'unrepl/... nil))
-        (into (elision-expand-1 aux e)))
-      x)
-    
-    (vector? x)
-    (if-let [last (when-some [last (peek x)]
-                    (and (elision? x) last))]
-      (recur aux (into (pop x) (elision-expand-1 aux last)))
-      x)
-    
-    (seq? x)
-    (lazy-seq
-      (when-some [s (seq x)]
-        (let [x (first s)]
-          (if (elision? x)
-            (elision-expand-1 aux x)
-            (cons x (elision-expand-1 aux (rest s)))))))
-    
-    :else x))
+      (seq? x)
+      (lazy-seq
+        (when-some [s (seq x)]
+          (let [x (first s)]
+            (if (elision? x)
+              (elision-expand-1 aux x)
+              (cons x (elision-expand-1 aux (rest s)))))))
+      
+      :else x)))
 
 (defn elision-expand-all [aux x]
   (walk/prewalk
     (fn [x]
-      (if (and (tagged-literal? x) (not (elision? x)))
-        (tagged-literal (:tag x) (elision-expand-all aux (:form x)))
-        (elision-expand-1 aux x)))
+      (let [x (elision-expand-1 aux x)]
+        (if (and (tagged-literal? x) (not (elision? x)))
+          (tagged-literal (:tag x) (elision-expand-all aux (:form x)))
+          x)))
     x))
 
 (defn is-complete?
