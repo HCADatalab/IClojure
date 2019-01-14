@@ -127,6 +127,12 @@ const style='<style id=iclojure-style>\
   }\
   .iclj * { padding: 0; margin: 0; }\
   /* collapse expand */\
+  .iclj li {\
+    cursor: default;\
+  }\
+  .iclj li:first-child {\
+    cursor: pointer;\
+  }\
   .iclj ul{\
     display: inline-block;\
     vertical-align: top;\
@@ -157,6 +163,14 @@ const style='<style id=iclojure-style>\
   .iclj li:first-child, .iclj li.trail, .iclj li.expanded > ul > li, .iclj li.expanded + li {\
     padding-left: 0;\
   }\
+  .iclj li.ns::before {\
+    content: "ns";\
+    vertical-align: top;\
+    font-size: 50%;\
+  }\
+  .iclj span.browse {\
+    font-size: 50%;\
+  }\
   /*  */\
   .iclj .elision {\
     cursor: pointer;\
@@ -166,7 +180,7 @@ const style='<style id=iclojure-style>\
     cursor: not-allowed;\
   }\
 </style>';
-
+console.log("MIME", mime);
 module.exports = [{
     id: 'iclojure_extension',
     autoStart: true,
@@ -174,7 +188,7 @@ module.exports = [{
     activate: function(app, reg) {
       console.log('JupyterLab extension iclojure_extension is activated!');
       console.log('args', app, reg);
-      let shared_state = {pending: {}}; // use a promise? lifecycles are not clear
+      let shared_state = {pending: {}}; // use a promise? lifecycles are not clear.
       window.jupiler = shared_state;
 console.log("before style");
       document.head.insertAdjacentHTML('beforeend', style);

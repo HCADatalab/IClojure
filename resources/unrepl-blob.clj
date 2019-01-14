@@ -1,7 +1,7 @@
 (clojure.core/let [nop (clojure.core/constantly nil)
 done (promise)
 e (clojure.core/atom eval)]
-(-> (create-ns 'unrepl.repl$Y6nrTzLlYmPevknN6DsNBMKatzU)
+(-> (create-ns 'unrepl.repl$p8QhJwTpu2S19yqqZbyXWLOYcI8)
 (intern '-init-done)
 (alter-var-root
 (fn [v]
@@ -28,13 +28,16 @@ done))))
 *string-length* Long/MAX_VALUE]
 (write x)))
 (declare ^:once ^:dynamic read ^:once ^:dynamic print ^:once ^:dynamic eval)(ns
-unrepl.printer$Ir$BfVfWFxWxDIho7ubR4ioO45Y
+unrepl.printer$gplBuV25GrBdJEyrGg$X61Xxkmw
 (:require
 [clojure.string :as str]
 [clojure.edn :as edn]
 [clojure.main :as main]
 [unrepl.core :as unrepl]))
 (def ^:dynamic *print-budget*)
+(def ^:dynamic *elide*
+"Function of 1 argument which returns the elision."
+(constantly nil))
 (def defaults {#'*print-length* 10
 #'*print-level* 8
 #'unrepl/*string-length* 72})
@@ -136,9 +139,6 @@ bits (+ bits 6)]
 (recur bits (bit-and 63 buf)))
 (recur bits buf))))))
 (.toByteArray bos)))
-(def ^:dynamic *elide*
-"Function of 1 argument which returns the elision."
-(constantly nil))
 (def ^:dynamic *max-colls* 100)
 (def ^:dynamic *realize-on-print*
 "Set to false to avoid realizing lazy sequences."
@@ -408,11 +408,11 @@ bindings (select-keys (get-thread-bindings) [#'*print-length* #'*print-level* #'
 unrepl/*string-length* Integer/MAX_VALUE]
 (edn-str x)))
 (ns
-unrepl.repl$Y6nrTzLlYmPevknN6DsNBMKatzU
+unrepl.repl$p8QhJwTpu2S19yqqZbyXWLOYcI8
 (:require
 [clojure.main :as m]
 [unrepl.core :as unrepl]
-[unrepl.printer$Ir$BfVfWFxWxDIho7ubR4ioO45Y :as p]
+[unrepl.printer$gplBuV25GrBdJEyrGg$X61Xxkmw :as p]
 [clojure.edn :as edn]
 [clojure.java.io :as io]))
 (defn classloader
@@ -572,12 +572,12 @@ ref (java.lang.ref.SoftReference. x refq)]
 (defonce ^:private elision-store (soft-store #(list `fetch %)))
 (defn fetch [id]
 (if-some [[session-id x] ((:get elision-store) id)]
-(unrepl.printer$Ir$BfVfWFxWxDIho7ubR4ioO45Y.WithBindings.
+(unrepl.printer$gplBuV25GrBdJEyrGg$X61Xxkmw.WithBindings.
 (select-keys (some-> session-id session :bindings) [#'*print-length* #'*print-level* #'unrepl/*string-length* #'p/*elide*])
 (cond
-(instance? unrepl.printer$Ir$BfVfWFxWxDIho7ubR4ioO45Y.ElidedKVs x) x
+(instance? unrepl.printer$gplBuV25GrBdJEyrGg$X61Xxkmw.ElidedKVs x) x
 (string? x) x
-(instance? unrepl.printer$Ir$BfVfWFxWxDIho7ubR4ioO45Y.MimeContent x) x
+(instance? unrepl.printer$gplBuV25GrBdJEyrGg$X61Xxkmw.MimeContent x) x
 :else (seq x)))
 p/unreachable))
 (defn interrupt! [session-id eval]
@@ -823,5 +823,5 @@ interrupted? #(.peek actions-queue)]
 ~expr))
 <<<FIN
 (clojure.core/ns user)
-(unrepl.repl$Y6nrTzLlYmPevknN6DsNBMKatzU/start (clojure.edn/read {:default tagged-literal} *in*))
+(unrepl.repl$p8QhJwTpu2S19yqqZbyXWLOYcI8/start (clojure.edn/read {:default tagged-literal} *in*))
 {:complete (unrepl.actions.complete$rH_N_7nQsmkfOrRjLdk$fEUUS6o/complete #unrepl/param :unrepl.complete/before #unrepl/param :unrepl.complete/after #unrepl/param :unrepl.complete/ns)}

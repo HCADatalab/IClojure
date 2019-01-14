@@ -27,7 +27,8 @@
             (when-some [[[k v] & kvs] (seq kvs)]
               (concat ["<li><ul>"] (li k) (spli v) ["</ul>"] (mapcat kv-spli kvs))))]
     (cond
-      (keyword? x) ["<li class=keyword>" (esc (str x))] ; cyan
+      (keyword? x) ["<li class=keyword>" (esc (str x))]
+      (symbol? x) ["<li class=symbol>" (esc (str x))]; cyan
       (tagged-literal? x)
       (case (:tag x)
         unrepl/... (if-some [form (:get (:form x))]
@@ -41,6 +42,11 @@
                                 s (plain (pr-str s))] (cons (nobr s) (spans e))) ; TOFIX nobr
         unrepl/ratio (let [[n d] (:form x)]
                        [(str "<li>" n "/" d)])
+        unrepl/ns ["<li class=ns>" (esc (:form x))]
+        
+        unrepl/browsable (let [[form data] (:form x)]
+                           (concat ["<li class=browsable><ul>"] (li form)
+                             ["<span class=browse>&#x1F50D;</span>"] (li data) ["</ul>"]))
         
         unrepl/pattern (let [[n d] (:form x)]
                          ["<li class=pattern>" (esc (pr-str (re-pattern (:form x))))])
@@ -69,10 +75,12 @@
                  (if-some [kv (find x elisions/unreachable)]
                    ; (dissoc x elisions/unreachable) [kv]
                    (concat (kv-lis (dissoc x elisions/unreachable))
-                     ["<li>TODO"])
+                     (if-some [form (:get (:form (val kv)))]
+                       ["<li class=elision data-expr='" (esc (pr-str form)) "'>…"]
+                       ["<li class=elision-deadend>⦰"]))
                    (kv-lis x))
                  ["<li class=trail>}</ul>"])
-      :else ["<li>" (pr-str x)])))
+      :else ["<li class='" (cond (string? x) "string" :else "misc") "'>" (pr-str x)])))
 
 (defn html [x]
   (apply str (concat ["<ul>"] (li x) ["</ul>"])))
