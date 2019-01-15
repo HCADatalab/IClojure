@@ -318,7 +318,7 @@
                              [_ command args] (re-matches #"(?s)\s*/(\S+?)([\s,\[{(].*)?" code)
                              elided (some-> command elisions/lookup :form :get)]
                          (if (or (nil? command) elided)
-                           (framed-eval-process (prn-str (or elided `(eval (read-string ~code)))) ctx state)
+                           (framed-eval-process (prn-str (or elided `(binding [*data-readers* (assoc *data-readers* '~'unrepl/mime (fn [form#] (tagged-literal '~'unrepl/mime (eval form#))))] (eval (read-string ~code))))) ctx state)
                            (let [{:keys [execution-count]} (swap! state update :execution-count inc)]
                              (case command
                                "connect" (let [args (re-seq #"\S+" args)]
