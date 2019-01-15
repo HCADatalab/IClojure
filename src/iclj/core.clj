@@ -16,7 +16,8 @@
     [zeromq.zmq :as zmq]
     [net.cgrand.packed-printer :as pp]
     [net.cgrand.xforms :as x]
-    [clojure.tools.deps.alpha :as deps])
+    [clojure.tools.deps.alpha :as deps]
+    [clojure.tools.deps.alpha.util.maven :as mvn])
   (:import [java.net ServerSocket])
   (:gen-class :main true))
 
@@ -351,6 +352,7 @@
                                               (let [deps (if (every? symbol? (keys arg))
                                                            {:deps arg}
                                                            arg)
+                                                    deps (merge-with merge {:mvn/repos mvn/standard-repos} deps)
                                                     libs (deps/resolve-deps deps {})]
                                                 (into [] (mapcat :paths) (vals libs)))
                                               
