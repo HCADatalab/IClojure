@@ -61,15 +61,15 @@ function ensure_comm(state) {
 const click_handler = (state) => function(e) {
   e.stopPropagation();
   let elt = e.target;
-  while(elt.tagName !== "LI") elt = elt.parentElement;
-  if (!elt) return;
+  if (elt.tagName !== "LI") return;
   if (elt.classList.contains("elision")) {
     let expr =  elt.dataset.expr;
     state.pending[expr]=elt;
     ensure_comm(state).send({"elision-id": expr});
     return;
   }
-  
+
+  if (!elt.firstElementChild) return;
   while(elt.tagName !== "LI" || !elt.firstElementChild) elt = elt.parentElement;
   if (!elt) return;
   if (elt.classList.contains("expanded")) {
@@ -87,7 +87,7 @@ const click_handler = (state) => function(e) {
     }
   } else {
     elt.classList.add("expanded");
-    for(let anc = elt.parentElement.parentElement; anc !== this; anc = anc.parentElement.parentElement) {
+    for(let anc = elt.parentElement.parentElement; anc !== this.firstElementChild; anc = anc.parentElement.parentElement) {
       anc.classList.add("contains-expanded");
     }
   }
@@ -153,6 +153,9 @@ const style='<style id=iclojure-style>\
   .iclj li.space {\
     white-space: pre-line;\
   }\
+  .iclj li.string > ul > li {\
+    white-space: pre-wrap;\
+  }\
   .iclj li.expanded > ul > li.space::after {\
     content: "\\A";\
     white-space: pre-line;\
@@ -171,6 +174,8 @@ const style='<style id=iclojure-style>\
   /*  */\
   .iclj .elision {\
     cursor: pointer;\
+    color: blue;\
+    text-decoration: underline;\
   }\
   .iclj .elision-deadend {\
     color: red;\

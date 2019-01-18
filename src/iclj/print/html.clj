@@ -38,8 +38,10 @@
         unrepl/meta (let [[m v] (:form x)]
                       (concat ["<li class=meta>^<ul>"] (li m) (li v) ["</ul>"]))
         unrepl.java/class ["<li class=class>" (esc (:form x))] ; to distinguish from symbols
-        #_#_unrepl/string (let [[s e] (:form x)
-                                s (plain (pr-str s))] (cons (nobr s) (spans e))) ; TOFIX nobr
+        unrepl/string (let [[s e] (:form x)
+                            s (pr-str s)
+                            s (subs s 1 (dec (count s)))]
+                        (concat ["<li class=string>\"<ul><li>" (esc s)] (li e) ["<li class=trail>\"</ul>"]))
         unrepl/ratio (let [[n d] (:form x)]
                        [(str "<li>" n "/" d)])
         unrepl/ns ["<li class=ns>" (esc (:form x))]
