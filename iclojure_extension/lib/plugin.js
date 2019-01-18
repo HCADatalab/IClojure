@@ -136,7 +136,7 @@ const style='<style id=iclojure-style>\
   .iclj ul{\
     display: inline-block;\
     vertical-align: top;\
-    white-space: normal;\
+    white-space: pre-line;\
   }\
   .iclj li.expanded + li::before {\
     content:"\\A";\
@@ -150,15 +150,12 @@ const style='<style id=iclojure-style>\
     vertical-align: top;\
     white-space: pre;\
   }\
-  .iclj li.space::before {\
+  .iclj li.space {\
+    white-space: pre-line;\
+  }\
+  .iclj li.expanded > ul > li.space::after {\
     content: "\\A";\
-    white-space: normal;\
-  }\
-  .iclj li.expanded > ul > li.space::before {\
-    white-space: pre;\
-  }\
-  .iclj li.map > ul > li.space::before {\
-    content: ",\\A";\
+    white-space: pre-line;\
   }\
   .iclj li:first-child, .iclj li.trail, .iclj li.expanded > ul > li, .iclj li.expanded + li {\
     padding-left: 0;\

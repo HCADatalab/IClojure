@@ -17,12 +17,12 @@
   "Turns x into a list item."
   [x]
   (letfn [(spli [x]
-            (cons "<li class=space>" (li x)))
+            (cons "<li class=space> " (li x)))
           (lis [x]
             (when-some [[x & xs] (seq x)]
               (concat (li x) (mapcat spli xs))))
           (kv-spli [[k v]]
-            (concat ["<li class=space><li><ul>"] (li k) (spli v) ["</ul>"]))
+            (concat ["<li class=space>, <li><ul>"] (li k) (spli v) ["</ul>"]))
           (kv-lis [kvs]
             (when-some [[[k v] & kvs] (seq kvs)]
               (concat ["<li><ul>"] (li k) (spli v) ["</ul>"] (mapcat kv-spli kvs))))]
@@ -74,10 +74,13 @@
       (map? x) (concat ["<li class=map>{<ul>"]
                  (if-some [kv (find x elisions/unreachable)]
                    ; (dissoc x elisions/unreachable) [kv]
-                   (concat (kv-lis (dissoc x elisions/unreachable))
-                     (if-some [form (:get (:form (val kv)))]
-                       ["<li class=elision data-expr='" (esc (pr-str form)) "'>…"]
-                       ["<li class=elision-deadend>⦰"]))
+                   (let [x (dissoc x elisions/unreachable)]
+                     (concat (kv-lis x)
+                       (when (seq x)
+                         ["<li class=space>, "])
+                       (if-some [form (:get (:form (val kv)))]
+                         ["<li class=elision data-expr='" (esc (pr-str form)) "'>…"]
+                         ["<li class=elision-deadend>⦰"])))
                    (kv-lis x))
                  ["<li class=trail>}</ul>"])
       :else ["<li class='" (cond (string? x) "string" :else "misc") "'>" (pr-str x)])))
