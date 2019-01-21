@@ -62,6 +62,16 @@ const click_handler = (state) => function(e) {
   e.stopPropagation();
   let elt = e.target;
   if (elt.tagName !== "LI") return;
+  if (elt.classList.contains("browser")) {
+    elt.classList.toggle("expanded");
+    elt = elt.nextElementSibling;
+    if (elt.classList.contains("elision")) {
+      let expr =  elt.dataset.expr;
+      state.pending[expr]=elt;
+      ensure_comm(state).send({"elision-id": expr});
+    }
+    return;
+  }
   if (elt.classList.contains("elision")) {
     let expr =  elt.dataset.expr;
     state.pending[expr]=elt;
@@ -168,8 +178,18 @@ const style='<style id=iclojure-style>\
     vertical-align: top;\
     font-size: 50%;\
   }\
-  .iclj span.browse {\
+  .iclj li.browser::before {\
+    content: "\\1F50D";\
     font-size: 50%;\
+  }\
+  .iclj li.browser + li {\
+    display: none;\
+  }\
+  .iclj li.browser.expanded::before {\
+    content: "\\1F50E";\
+  }\
+  .iclj li.browser.expanded + li {\
+    display: inline;\
   }\
   /*  */\
   .iclj .elision {\

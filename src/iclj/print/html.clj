@@ -48,7 +48,7 @@
         
         unrepl/browsable (let [[form data] (:form x)]
                            (concat ["<li class=browsable><ul>"] (li form)
-                             ["<span class=browse>&#x1F50D;</span>"] (li data) ["</ul>"]))
+                             ["<li class=browser>"] (li data) ["</ul>"]))
         
         unrepl/pattern (let [[n d] (:form x)]
                          ["<li class=pattern>" (esc (pr-str (re-pattern (:form x))))])
