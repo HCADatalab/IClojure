@@ -4,9 +4,6 @@
 var core = require('@jupyterlab/coreutils');
 var mime = require('@jupyterlab/rendermime');
 var widgets = require('@phosphor/widgets');
-console.log('WIDGETS', widgets);
-console.log('CORE', core);
-console.log('MIME', mime);
  
 class OutputWidget extends widgets.Widget {
   /**
@@ -24,9 +21,7 @@ class OutputWidget extends widgets.Widget {
    * Render CLJ into this widget's node.
    */
   renderModel(model) {
-    console.log('options', this._options, model);
     this.node.innerHTML = "<div class=iclj>" + model.data["text/iclojure-html"] + "</div>";
-    console.log("ul", this.node.firstElementChild.firstElementChild);
     pushTrails(this.node.firstElementChild.firstElementChild);
     this.node.onclick = click_handler(this._state);
     return Promise.resolve(undefined);
@@ -45,7 +40,11 @@ function ensure_comm(state) {
     div.innerHTML = html;
     console.log('html', html);
     let nnode;
-    for(let node = div.firstElementChild.firstElementChild.firstElementChild.firstChild;
+    let pnode = div.firstElementChild.firstElementChild.firstElementChild;
+    if (elt.previousElementSibling && elt.previousElementSibling.classList.contains('browser')
+        && pnode.firstElementChild && pnode.firstElementChild.classList.contains('seq'))
+      pnode = pnode.firstElementChild.firstElementChild;
+    for(let node = pnode.firstChild;
         node && node.classList && !node.classList.contains('trail');
         node = nnode) {
       nnode = node.nextSibling;
@@ -78,12 +77,15 @@ const click_handler = (state) => function(e) {
     ensure_comm(state).send({"elision-id": expr});
     return;
   }
+  if (elt.parentElement.parentElement.classList.contains('collapsed'))
+    elt = elt.parentElement.parentElement;
 
   if (!elt.firstElementChild) return;
   while(elt.tagName !== "LI" || !elt.firstElementChild) elt = elt.parentElement;
   if (!elt) return;
   if (elt.classList.contains("expanded")) {
     elt.classList.remove("expanded");
+    elt.classList.add("collapsed");
     while(true) {
       let n = 0;
       for(let sib = elt.parentElement.firstElementChild; sib; sib = sib.nextElementSibling) {
@@ -95,6 +97,8 @@ const click_handler = (state) => function(e) {
       anc.classList.remove("contains-expanded");
       elt = anc;
     }
+  } else if (elt.classList.contains("collapsed")) {
+    elt.classList.remove("collapsed");
   } else {
     elt.classList.add("expanded");
     for(let anc = elt.parentElement.parentElement; anc !== this.firstElementChild; anc = anc.parentElement.parentElement) {
@@ -112,7 +116,7 @@ function div(s) {
 
 function pushTrails(root_ul) {
   let ul = root_ul;
-  while(true) {
+  while(ul) {
     let li = ul.lastElementChild;
     for(; li && li.classList.contains('trail'); li = li.previousElementSibling);
     let new_ul = li && li.firstElementChild;
@@ -128,13 +132,12 @@ function pushTrails(root_ul) {
       target.appendChild(li);
 }
 
-// jupiler.session.kernelChanged.connect(function() { console.log("new kernel") });
-// window.jupiler.session.kernel.connectToComm("unrepl2");
-
 const style='<style id=iclojure-style>\
   .iclj {\
     font-family: monospace;\
   }\
+  .iclj .class {color: orange;}\
+  .iclj.iclj  .keyword {color: teal; font-weight: bold;}\
   .iclj * { padding: 0; margin: 0; }\
   /* collapse expand */\
   .iclj li {\
@@ -154,6 +157,17 @@ const style='<style id=iclojure-style>\
   }\
   .iclj li.expanded > ul > li + li.trail::before {\
     content:"";\
+  }\
+  .iclj li.collapsed > ul > li {\
+    display: none;\
+  }\
+  .iclj li.collapsed > ul > li::before {\
+    content: "\\22EF";\
+    font-weight: bold;\
+    color: #aaa;\
+  }\
+  .iclj li.collapsed > ul > li.trail {\
+    display: inline;\
   }\
   .iclj li{\
     display: inline;\
@@ -191,6 +205,10 @@ const style='<style id=iclojure-style>\
   .iclj li.browser.expanded + li {\
     display: inline;\
   }\
+  .iclj li.browser.expanded ~ li::before {\
+    content:"\\A\\00A0\\00A0";\
+    white-space: pre;\
+  }\
   /*  */\
   .iclj .elision {\
     cursor: pointer;\
@@ -202,19 +220,15 @@ const style='<style id=iclojure-style>\
     cursor: not-allowed;\
   }\
 </style>';
-console.log("MIME", mime);
 module.exports = [{
     id: 'iclojure_extension',
     autoStart: true,
     requires: [mime.IRenderMimeRegistry],
     activate: function(app, reg) {
       console.log('JupyterLab extension iclojure_extension is activated!');
-      console.log('args', app, reg);
       let shared_state = {pending: {}}; // use a promise? lifecycles are not clear.
       window.jupiler = shared_state;
-console.log("before style");
       document.head.insertAdjacentHTML('beforeend', style);
-console.log("after style");
       reg.addFactory({
         safe: true,
         mimeTypes: ["text/iclojure-html"],
