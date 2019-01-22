@@ -319,7 +319,14 @@
                              [_ command args] (re-matches #"(?s)\s*/(\S+?)([\s,\[{(].*)?" code)
                              elided (some-> command elisions/lookup :form :get)]
                          (if (or (nil? command) elided)
-                           (framed-eval-process (prn-str (or elided `(binding [*data-readers* (assoc *data-readers* '~'unrepl/mime (fn [form#] `(tagged-literal '~'~'unrepl/mime ~form#)))] (eval (read-string ~code))))) ctx state)
+                           (framed-eval-process (prn-str (or elided
+                                                           `(binding [*data-readers* (assoc *data-readers* '~'unrepl/mime (fn [form#] `(tagged-literal '~'~'unrepl/mime ~form#)))
+                                                                      *in* (-> ~code java.io.StringReader. clojure.lang.LineNumberingPushbackReader.)]
+                                                              (loop [ret# nil]
+                                                                (let [form# (read {:eof 'eof#} *in*)]
+                                                                  (case form#
+                                                                    eof# ret#
+                                                                    (recur (eval form#)))))))) ctx state)
                            (let [{:keys [execution-count]} (swap! state update :execution-count inc)]
                              (case command
                                "connect" (let [args (re-seq #"\S+" args)]
