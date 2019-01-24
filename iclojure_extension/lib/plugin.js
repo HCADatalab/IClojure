@@ -38,7 +38,6 @@ function ensure_comm(state) {
     const pelt = elt.parentNode;
     const div = document.createElement('div');
     div.innerHTML = html;
-    console.log('html', html);
     let nnode;
     let pnode = div.firstElementChild.firstElementChild.firstElementChild;
     if (elt.previousElementSibling && elt.previousElementSibling.classList.contains('browser')
@@ -51,18 +50,55 @@ function ensure_comm(state) {
       pelt.insertBefore(node, elt);
     }
     pelt.removeChild(elt);
-    pushTrails(elt.closest('.iclj'));
+    pushTrails(pelt.closest('.iclj > ul'));
   };
   comm.open();
   return comm;
 }
 
+function isTrail(li, ifEmpty) {
+  return li ? li.classList.contains('trail') : ifEmpty;
+}
+
+function expand(li, root) {
+  li.classList.add("expanded");
+  for(let anc = li.parentElement.parentElement; anc !== root; anc = anc.parentElement.parentElement)
+    anc.classList.add("contains-expanded");
+}
+
+function unexpand(li) {
+  li.classList.remove("expanded");
+  while(true) {
+    let n = 0;
+    for(let sib = li.parentElement.firstElementChild; sib; sib = sib.nextElementSibling) {
+      if (sib.classList.contains("contains-expanded") || sib.classList.contains("expanded")) n++; 
+    }
+    if (n > 0) break;
+    let anc = li.parentElement.parentElement;
+    if (anc.tagName !== "LI") break;
+    anc.classList.remove("contains-expanded");
+    li = anc;
+  }
+}
+
+function collapse(li) {
+  ensureTrail(li.firstElementChild);
+  li.classList.add("collapsed");
+}
+
 const click_handler = (state) => function(e) {
   e.stopPropagation();
+  const root_li =  this.firstElementChild;
   let elt = e.target;
   if (elt.tagName !== "LI") return;
   if (elt.classList.contains("browser")) {
-    elt.classList.toggle("expanded");
+    if (elt.classList.contains("expanded")) {
+      unexpand(elt);
+      ensureTrail(elt.parentElement);
+      return;
+    }
+    expand(elt, root_li);
+    pushTrails(elt.parentElement, true);
     elt = elt.nextElementSibling;
     if (elt.classList.contains("elision")) {
       let expr =  elt.dataset.expr;
@@ -83,53 +119,65 @@ const click_handler = (state) => function(e) {
   if (!elt.firstElementChild) return;
   while(elt.tagName !== "LI" || !elt.firstElementChild) elt = elt.parentElement;
   if (!elt) return;
-  if (elt.classList.contains("expanded")) {
-    elt.classList.remove("expanded");
-    elt.classList.add("collapsed");
-    while(true) {
-      let n = 0;
-      for(let sib = elt.parentElement.firstElementChild; sib; sib = sib.nextElementSibling) {
-        if (sib.classList.contains("contains-expanded") || sib.classList.contains("expanded")) n++; 
-      }
-      if (n > 0) break;
-      let anc = elt.parentElement.parentElement;
-      if (anc.tagName !== "LI") break;
-      anc.classList.remove("contains-expanded");
-      elt = anc;
-    }
+  if (elt.classList.contains("expanded")) { // expanded => at least two items
+    collapse(elt);
+    unexpand(elt);
   } else if (elt.classList.contains("collapsed")) {
     elt.classList.remove("collapsed");
-  } else {
-    elt.classList.add("expanded");
-    for(let anc = elt.parentElement.parentElement; anc !== this.firstElementChild; anc = anc.parentElement.parentElement) {
-      anc.classList.add("contains-expanded");
-    }
+    pushTrails(elt.firstElementChild, true);
+  } else if (elt.firstElementChild && !isTrail(elt.firstElementChild.children.item(1), true)) {
+    expand(elt, root_li);
+  } else if (elt.firstElementChild && !isTrail(elt.firstElementChild.firstElementChild, true)) {
+    collapse(elt);
   }
 }
 
-
-function div(s) {
-  let div = document.createElement('div');
-  div.innerHTML = s;
-  return div;
-}
-
-function pushTrails(root_ul) {
+function pushTrails(root_ul, only_own_trail) {
+  if (!root_ul) return;
   let ul = root_ul;
-  while(ul) {
+  while(true) {
     let li = ul.lastElementChild;
     for(; li && li.classList.contains('trail'); li = li.previousElementSibling);
-    let new_ul = li && li.firstElementChild;
-    for(li = li && li.previousElementSibling; li; li = li.previousElementSibling)
-      li.firstElementChild && pushTrails(li.firstElementChild);
+    let new_ul = li && !li.parentElement.parentElement.classList.contains('collapsed') && li.firstElementChild;
+    if (!only_own_trail)
+      for(li = li && li.previousElementSibling; li; li = li.previousElementSibling)
+        pushTrails(li.firstElementChild, false);
     if (!new_ul) break;
     ul = new_ul;
   }
   const target = ul;
   if (target === root_ul) return;
-  for(;ul !== root_ul; ul = ul.parentElement.parentElement)
-    for(let li = ul.parentElement.nextElementSibling; li; li = li.nextElementSibling)
+  for(let depth = 1;ul !== root_ul; depth++, ul = ul.parentElement.parentElement)
+    for(let li = ul.parentElement.nextElementSibling; li; li = li.nextElementSibling) {
+      li.dataset.depth = trailDepth(li) + depth;
       target.appendChild(li);
+    }
+}
+
+function trailDepth(li) {
+  return parseInt(li.dataset.depth || "0");
+}
+
+function ensureTrail(root_ul) {
+  let ul = root_ul;
+  let depth = 0;
+  while(ul) {
+    let li = ul.lastElementChild;
+    if (!li) return;
+    if (li.classList.contains('trail')) {
+      let prevli = null;
+      while(li && li.classList.contains('trail') && trailDepth(li) >= depth) {
+        li.dataset.depth = trailDepth(li) - depth;
+        let nextli = li.previousElementSibling;
+        root_ul.insertBefore(li, prevli);
+        prevli = li;
+        li = nextli;
+      }
+      return;
+    }
+    ul = li.firstElementChild;
+    depth++;
+  }
 }
 
 const style='<style id=iclojure-style>\
@@ -151,7 +199,7 @@ const style='<style id=iclojure-style>\
     vertical-align: top;\
     white-space: pre-line;\
   }\
-  .iclj li.expanded + li::before {\
+  .iclj li.expanded + li::before, .iclj li.contains-expanded + li::before  {\
     content:"\\A";\
     white-space: pre;\
   }\
@@ -161,7 +209,7 @@ const style='<style id=iclojure-style>\
   .iclj li.collapsed > ul > li {\
     display: none;\
   }\
-  .iclj li.collapsed > ul > li::before {\
+  .iclj li.collapsed > ul::before {\
     content: "\\22EF";\
     font-weight: bold;\
     color: #aaa;\
@@ -183,9 +231,6 @@ const style='<style id=iclojure-style>\
   .iclj li.expanded > ul > li.space::after {\
     content: "\\A";\
     white-space: pre-line;\
-  }\
-  .iclj li:first-child, .iclj li.trail, .iclj li.expanded > ul > li, .iclj li.expanded + li {\
-    padding-left: 0;\
   }\
   .iclj li.ns::before {\
     content: "ns";\

@@ -21,11 +21,15 @@
           (lis [x]
             (when-some [[x & xs] (seq x)]
               (concat (li x) (mapcat spli xs))))
-          (kv-spli [[k v]]
-            (concat ["<li class=space>, <li><ul>"] (li k) (spli v) ["</ul>"]))
-          (kv-lis [kvs]
-            (when-some [[[k v] & kvs] (seq kvs)]
-              (concat ["<li><ul>"] (li k) (spli v) ["</ul>"] (mapcat kv-spli kvs))))]
+          (kv-li-sp [[k v]]
+            (concat ["<li><ul>"] (li k) (spli v) ["<li class=trail>,</ul><li class=space> "]))
+          (kv-lis 
+            ([kvs]
+              (let [kvs (vec kvs)]
+                (when-some [[k v] (peek kvs)]
+                  (kv-lis (pop kvs) (concat ["<li><ul>"] (li k) (spli v) ["</ul>"])))))
+            ([kvs end-lis]
+              (concat (mapcat kv-li-sp kvs) end-lis)))]
     (cond
       (keyword? x) ["<li class=keyword>" (esc (str x))]
       (symbol? x) ["<li class=symbol>" (esc (str x))]; cyan
@@ -77,12 +81,9 @@
                  (if-some [kv (find x elisions/unreachable)]
                    ; (dissoc x elisions/unreachable) [kv]
                    (let [x (dissoc x elisions/unreachable)]
-                     (concat (kv-lis x)
-                       (when (seq x)
-                         ["<li class=space>, "])
-                       (if-some [form (:get (:form (val kv)))]
-                         ["<li class=elision data-expr='" (esc (pr-str form)) "'>…"]
-                         ["<li class=elision-deadend>⦰"])))
+                     (kv-lis x (if-some [form (:get (:form (val kv)))]
+                                 ["<li class=elision data-expr='" (esc (pr-str form)) "'>…"]
+                                 ["<li class=elision-deadend>⦰"])))
                    (kv-lis x))
                  ["<li class=trail>}</ul>"])
       :else ["<li class='" (cond (string? x) "string" :else "misc") "'>" (pr-str x)])))
