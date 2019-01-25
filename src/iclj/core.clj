@@ -146,9 +146,14 @@
     (catch Exception _
       false)))
 
+(defn- ensure-raw [x]
+  (if (and (tagged-literal? x) (= 'unrepl/browsable (:tag x)))
+    (:form x)
+    x))
+
 (defn handle-prompt [state payload]
   (when-some [ns (get payload 'clojure.core/*ns*)]
-    (swap! state assoc :ns (:form ns))))
+    (swap! state assoc :ns (:form (ensure-raw ns)))))
 
 (defn framed-eval-process [code ctx state]
   (let [{:keys [execution-count repl aux]} (swap! state update :execution-count inc)
@@ -428,21 +433,21 @@
 
                       "complete_request"
                       (let [{{:keys [complete]} :actions aux :aux ns :ns} @state
-                            {:keys [code cursor_pos]} (:content request)
-                            left (subs code 0 cursor_pos)
-                            right (subs code cursor_pos)
-                            [tag payload] (a/<! (aux-eval aux (action-call complete {:unrepl.complete/ns (list 'quote ns)
-                                                                                     :unrepl.complete/before left
-                                                                                     :unrepl.complete/after right})))
-                            payload (elision-expand-all aux (case tag :eval payload nil))
-                            max-left-del (transduce (map :left-del) max 0 payload)
-                            max-right-del (transduce (map :right-del) max 0 payload)
-                            candidates (map 
-                                         (fn [{:keys [candidate left-del right-del]}]
-                                           (str (subs left (- cursor_pos (- max-left-del left-del)))
-                                             candidate
-                                             (subs right right-del max-right-del)))
-                                         payload)]
+                           {:keys [code cursor_pos]} (:content request)
+                           left (subs code 0 cursor_pos)
+                           right (subs code cursor_pos)
+                           [tag payload] (a/<! (aux-eval aux (action-call complete {:unrepl.complete/ns (list 'quote ns)
+                                                                                    :unrepl.complete/before left
+                                                                                    :unrepl.complete/after right})))
+                           payload (elision-expand-all aux (case tag :eval payload nil))
+                           max-left-del (transduce (map :left-del) max 0 payload)
+                           max-right-del (transduce (map :right-del) max 0 payload)
+                           candidates (map 
+                                        (fn [{:keys [candidate left-del right-del]}]
+                                          (str (subs left (- cursor_pos (- max-left-del left-del)))
+                                            candidate
+                                            (subs right right-del max-right-del)))
+                                        payload)]
                         (a/>! ctx
                           [:reply
                            {:matches candidates
