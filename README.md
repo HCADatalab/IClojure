@@ -52,7 +52,14 @@ Render MIME
 ```
 #unrepl/mime {:content-type "text/latex" :content "$$E=mc^2$$"}
 ```
-
+```
+#unrepl/mime {:content-type "application/vnd.vegalite.v2+json"
+              :content   {:data {:values [{:animal :horse :amount 40}{:animal :dog :amount 60}]}
+                          :mark :bar
+                          :encoding {:x {:field :amount} 
+                                     :y {:field :animal :type :ordinal}}}}
+```
+![Alt text](images/vega-lite-bar-plot.png)
 
 ### Experimental
 Currently working on IClojure JupyterLab Extension for mouse-driven lazy-loading.  Code is included in this repo, but documentation is still forth coming.
