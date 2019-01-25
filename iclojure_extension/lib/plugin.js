@@ -199,12 +199,11 @@ const style='<style id=iclojure-style>\
     vertical-align: top;\
     white-space: pre-line;\
   }\
-  .iclj li.expanded + li::before, .iclj li.contains-expanded + li::before  {\
-    content:"\\A";\
-    white-space: pre;\
+  .iclj li.expanded + li.space, .iclj li.contains-expanded + li.space  {\
+    white-space: normal;\
   }\
-  .iclj li.expanded > ul > li + li.trail::before {\
-    content:"";\
+  .iclj li.expanded + li.space::after, .iclj li.contains-expanded + li.space::after  {\
+    content:"\\A";\
   }\
   .iclj li.collapsed > ul > li {\
     display: none;\
