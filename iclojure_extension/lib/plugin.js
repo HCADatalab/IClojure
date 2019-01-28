@@ -229,7 +229,6 @@ const style='<style id=iclojure-style>\
   }\
   .iclj li.expanded > ul > li.space::after {\
     content: "\\A";\
-    white-space: pre-line;\
   }\
   .iclj li.ns::before {\
     content: "ns";\
