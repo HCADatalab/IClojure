@@ -4,12 +4,14 @@
 var core = require('@jupyterlab/coreutils');
 var mime = require('@jupyterlab/rendermime');
 var widgets = require('@phosphor/widgets');
+var notebook = require('@jupyterlab/notebook');
  
 class OutputWidget extends widgets.Widget {
   /**
    * Construct a new output widget.
    */
   constructor(options, shared_state) {
+    console.log("OutputWidget", options);
     super();
     this._options = options;
     this._state = shared_state;
@@ -23,37 +25,41 @@ class OutputWidget extends widgets.Widget {
   renderModel(model) {
     this.node.innerHTML = "<div class=iclj>" + model.data["text/iclojure-html"] + "</div>";
     pushTrails(this.node.firstElementChild.firstElementChild);
-    this.node.onclick = click_handler(this._state);
+    this.node.onclick = click_handler(elision_resolver(this._state));
     return Promise.resolve(undefined);
   }
 }
 
-function ensure_comm(state) {
-  if (state.comm) return state.comm;
-  const comm = state.comm = state.context.session.kernel.connectToComm("expansion");
-  comm.onMsg = function(msg) {
-    const expr = msg.content.data["elision-id"];
-    const html = msg.content.data.expansion;
-    const elt = state.pending[expr];
-    const pelt = elt.parentNode;
-    const div = document.createElement('div');
-    div.innerHTML = html;
-    let nnode;
-    let pnode = div.firstElementChild.firstElementChild.firstElementChild;
-    if (elt.previousElementSibling && elt.previousElementSibling.classList.contains('browser')
-        && pnode.firstElementChild && pnode.firstElementChild.classList.contains('seq'))
-      pnode = pnode.firstElementChild.firstElementChild;
-    for(let node = pnode.firstChild;
-        node && node.classList && !node.classList.contains('trail');
-        node = nnode) {
-      nnode = node.nextSibling;
-      pelt.insertBefore(node, elt);
-    }
-    pelt.removeChild(elt);
-    pushTrails(pelt.closest('.iclj > ul'));
-  };
-  comm.open();
-  return comm;
+const elision_resolver = (state) => function(expr, elt) {
+  const currnb = state.notebooks.currentWidget;
+  const uninitialized = !state.comms[currnb.id];
+  const {comm, pending} = state.comms[currnb.id] || (state.comms[currnb.id] = {comm: currnb.session.kernel.connectToComm("expansion"), pending: {}});
+  if (uninitialized) {
+    comm.onMsg = function(msg) {
+      const expr = msg.content.data["elision-id"];
+      const html = msg.content.data.expansion;
+      const elt = pending[expr];
+      const pelt = elt.parentNode;
+      const div = document.createElement('div');
+      div.innerHTML = html;
+      let nnode;
+      let pnode = div.firstElementChild.firstElementChild.firstElementChild;
+      if (elt.previousElementSibling && elt.previousElementSibling.classList.contains('browser')
+          && pnode.firstElementChild && pnode.firstElementChild.classList.contains('seq'))
+        pnode = pnode.firstElementChild.firstElementChild;
+      for(let node = pnode.firstChild;
+          node && node.classList && !node.classList.contains('trail');
+          node = nnode) {
+        nnode = node.nextSibling;
+        pelt.insertBefore(node, elt);
+      }
+      pelt.removeChild(elt);
+      pushTrails(pelt.closest('.iclj > ul'));
+    };
+    comm.open();
+  }
+  pending[expr] = elt;
+  comm.send({"elision-id": expr});
 }
 
 function isTrail(li, ifEmpty) {
@@ -86,7 +92,7 @@ function collapse(li) {
   li.classList.add("collapsed");
 }
 
-const click_handler = (state) => function(e) {
+const click_handler = (resolve) => function(e) {
   e.stopPropagation();
   const root_li =  this.firstElementChild;
   let elt = e.target;
@@ -100,17 +106,12 @@ const click_handler = (state) => function(e) {
     expand(elt, root_li);
     pushTrails(elt.parentElement, true);
     elt = elt.nextElementSibling;
-    if (elt.classList.contains("elision")) {
-      let expr =  elt.dataset.expr;
-      state.pending[expr]=elt;
-      ensure_comm(state).send({"elision-id": expr});
-    }
+    if (elt.classList.contains("elision"))
+      resolve(elt.dataset.expr, elt);
     return;
   }
   if (elt.classList.contains("elision")) {
-    let expr =  elt.dataset.expr;
-    state.pending[expr]=elt;
-    ensure_comm(state).send({"elision-id": expr});
+    resolve(elt.dataset.expr, elt);
     return;
   }
   if (elt.parentElement.parentElement.classList.contains('collapsed'))
@@ -266,10 +267,10 @@ const style='<style id=iclojure-style>\
 module.exports = [{
     id: 'iclojure_extension',
     autoStart: true,
-    requires: [mime.IRenderMimeRegistry],
-    activate: function(app, reg) {
+    requires: [mime.IRenderMimeRegistry, notebook.INotebookTracker],
+    activate: function(app, reg, notebooks) {
       console.log('JupyterLab extension iclojure_extension is activated!');
-      let shared_state = {pending: {}}; // use a promise? lifecycles are not clear.
+      let shared_state = {comms: {}, notebooks: notebooks}; 
       window.jupiler = shared_state;
       document.head.insertAdjacentHTML('beforeend', style);
       reg.addFactory({
@@ -277,7 +278,6 @@ module.exports = [{
         mimeTypes: ["text/iclojure-html"],
         createRenderer: options => new OutputWidget(options, shared_state)
       });
-      app.docRegistry.addWidgetExtension('Notebook', {createNew: function(a, context) { shared_state.context = context; }});
     }
 }];
 })();
