@@ -11,7 +11,6 @@ class OutputWidget extends widgets.Widget {
    * Construct a new output widget.
    */
   constructor(options, shared_state) {
-    console.log("OutputWidget", options);
     super();
     this._options = options;
     this._state = shared_state;
