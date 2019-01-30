@@ -6,6 +6,24 @@
   - Avoids printing large results with configurable data structure elision
   - Render HTML, Latex, and Markdown
 
+### Try it!
+
+```sh
+docker run -p 8888:8888 cgrand/iclojure
+```
+
+Watch the output for a url and/or a token, for example:
+```
+[I 13:10:02.189 LabApp] The Jupyter Notebook is running at:
+[I 13:10:02.189 LabApp] http://(c94e72d6fe5f or 127.0.0.1):8888/?token=0212d3870d2feb2a4148045e5b1df77460dc4618fe6854d2
+```
+
+Go to localhost:8888 and enter the token (`0212d3870d2feb2a4148045e5b1df77460dc4618fe6854d2` above).
+
+This docker image is built using the `Dockerfile` provided in this repository. In addition to the kernel istelf, the `iclojure_extension` is enabled which allows interactive browsing (both elided collections and REBL-like view).
+
+A volume can be mounted under `/notebooks` to persist notebooks.
+
 ### Installation
 
 IClojure is designed to work with either [Jupyter](https://github.com/jupyter/notebook) or [Jupyter Lab](https://github.com/jupyterlab/jupyterlab).  Future work is primarly targeting the Juptyer Lab environment.
